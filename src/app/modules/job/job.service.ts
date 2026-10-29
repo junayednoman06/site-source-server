@@ -273,6 +273,12 @@ const getAllForWorker = async (
   const filter = getStringQuery(query.filter);
   const searchTerm = getStringQuery(query.searchTerm);
   const hourlyRate = getNumberQuery(query.hourlyRate);
+  const startDateFrom = getDateQuery(query.startDateFrom);
+  const startDateTo = getDateQuery(query.startDateTo);
+  const endDateFrom = getDateQuery(query.endDateFrom);
+  const endDateTo = getDateQuery(query.endDateTo);
+  const minPrice = getNumberQuery(query.minPrice);
+  const maxPrice = getNumberQuery(query.maxPrice);
   const latitude = getNumberQuery(query.latitude) || getNumberQuery(query.lat);
   const longitude =
     getNumberQuery(query.longitude) ||
@@ -342,6 +348,35 @@ const getAllForWorker = async (
   if (hourlyRate !== undefined) {
     andConditions.push({
       hourlyRate,
+    });
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    andConditions.push({
+      hourlyRate: {
+        ...(minPrice !== undefined ? { gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+      },
+    });
+  }
+
+  if (startDateFrom || startDateTo) {
+    andConditions.push({
+      startDate: {
+        ...(startDateFrom && startDateFrom > new Date()
+          ? { gte: startDateFrom }
+          : { gte: new Date() }),
+        ...(startDateTo ? { lte: startDateTo } : {}),
+      },
+    });
+  }
+
+  if (endDateFrom || endDateTo) {
+    andConditions.push({
+      endDate: {
+        ...(endDateFrom ? { gte: endDateFrom } : {}),
+        ...(endDateTo ? { lte: endDateTo } : {}),
+      },
     });
   }
 
@@ -508,6 +543,10 @@ const getAvailableMapJobsForWorker = async (
   const trades = getTradeQuery(query.trade);
   const startDateFrom = getDateQuery(query.startDateFrom);
   const startDateTo = getDateQuery(query.startDateTo);
+  const endDateFrom = getDateQuery(query.endDateFrom);
+  const endDateTo = getDateQuery(query.endDateTo);
+  const minPrice = getNumberQuery(query.minPrice);
+  const maxPrice = getNumberQuery(query.maxPrice);
 
   const andConditions: Prisma.JobWhereInput[] = [
     {
@@ -547,6 +586,24 @@ const getAvailableMapJobsForWorker = async (
           ? { gte: startDateFrom }
           : { gte: new Date() }),
         ...(startDateTo ? { lte: startDateTo } : {}),
+      },
+    });
+  }
+
+  if (endDateFrom || endDateTo) {
+    andConditions.push({
+      endDate: {
+        ...(endDateFrom ? { gte: endDateFrom } : {}),
+        ...(endDateTo ? { lte: endDateTo } : {}),
+      },
+    });
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    andConditions.push({
+      hourlyRate: {
+        ...(minPrice !== undefined ? { gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
       },
     });
   }
