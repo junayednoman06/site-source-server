@@ -1,0 +1,159 @@
+import { Router } from "express";
+import { UserRole } from "@prisma/client";
+import authorize from "../../middlewares/authorize.js";
+import validate from "../../middlewares/validate.js";
+import { jobController } from "./job.controller.js";
+import {
+  createTimeSheetZod,
+  createJobZod,
+  sendJobOfferZod,
+  updateApplicationStatusZod,
+  updateJobOfferStatusZod,
+  updateTimeSheetStatusZod,
+  updateJobCompletionStatusZod,
+  updateJobZod,
+} from "./job.validation.js";
+
+const router = Router();
+
+router.post(
+  "/completion/:id",
+  authorize(UserRole.WORKER),
+  jobController.sendJobCompletionRequest
+);
+
+router.patch(
+  "/completion/:id",
+  authorize(UserRole.EMPLOYER),
+  validate(updateJobCompletionStatusZod),
+  jobController.updateJobCompletionStatus
+);
+
+router.get(
+  "/",
+  authorize({ optional: true }, UserRole.WORKER),
+  jobController.getAllForWorker
+);
+
+router.get("/my-jobs", authorize(UserRole.EMPLOYER), jobController.getMyJobs);
+
+router.get(
+  "/my-job-titles",
+  authorize(UserRole.EMPLOYER),
+  jobController.getEmployerJobTitles
+);
+
+router.get(
+  "/applied-jobs",
+  authorize(UserRole.WORKER),
+  jobController.getMyAppliedJobs
+);
+
+router.get(
+  "/available-map-jobs",
+  authorize({ optional: true }, UserRole.WORKER),
+  jobController.getAvailableMapJobsForWorker
+);
+
+router.get(
+  "/worker-active-jobs",
+  authorize(UserRole.WORKER),
+  jobController.getActiveJobsForWorker
+);
+
+router.get(
+  "/offers/sent",
+  authorize(UserRole.EMPLOYER),
+  jobController.getSentOffers
+);
+
+router.get(
+  "/offers/received",
+  authorize(UserRole.WORKER),
+  jobController.getReceivedOffers
+);
+
+router.post(
+  "/offers",
+  authorize(UserRole.EMPLOYER),
+  validate(sendJobOfferZod),
+  jobController.sendOffer
+);
+
+router.patch(
+  "/offers/:id/status",
+  authorize(UserRole.WORKER),
+  validate(updateJobOfferStatusZod),
+  jobController.changeJobOfferStatus
+);
+
+router.patch(
+  "/applications/:id/status",
+  authorize(UserRole.EMPLOYER),
+  validate(updateApplicationStatusZod),
+  jobController.changeApplicationStatus
+);
+
+router.patch(
+  "/timesheet-days/:id/status",
+  authorize(UserRole.EMPLOYER),
+  validate(updateTimeSheetStatusZod),
+  jobController.changeTimeSheetStatus
+);
+
+router.patch(
+  "/timesheets/:id/approve-all",
+  authorize(UserRole.EMPLOYER),
+  jobController.approveAllTimeSheetDays
+);
+
+router.get(
+  "/timesheets/pending",
+  authorize(UserRole.EMPLOYER),
+  jobController.getPendingTimeSheetsForEmployer
+);
+
+router.post("/:id/apply", authorize(UserRole.WORKER), jobController.apply);
+
+router.post(
+  "/:id/timesheets",
+  authorize(UserRole.WORKER),
+  validate(createTimeSheetZod),
+  jobController.createTimeSheet
+);
+
+router.get(
+  "/:id/timesheets",
+  authorize(UserRole.EMPLOYER, UserRole.WORKER),
+  jobController.getTimeSheetByJob
+);
+
+router.get(
+  "/:id/applications",
+  authorize(UserRole.EMPLOYER),
+  jobController.getApplicationsByJob
+);
+
+router.get(
+  "/:id",
+  authorize({ optional: true }, UserRole.WORKER, UserRole.EMPLOYER),
+  jobController.getSingle
+);
+
+router.patch(
+  "/:id",
+  authorize(UserRole.EMPLOYER),
+  validate(updateJobZod),
+  jobController.update
+);
+
+router.delete("/:id", authorize(UserRole.EMPLOYER), jobController.deleteJob);
+
+router.post(
+  "/",
+  authorize(UserRole.EMPLOYER),
+  validate(createJobZod),
+  jobController.create
+);
+
+export const jobRoutes = router;

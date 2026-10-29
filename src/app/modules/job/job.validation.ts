@@ -1,0 +1,87 @@
+import z from "zod";
+import {
+  ApplicationStatus,
+  JobCompletionStatus,
+  JobMustHave,
+  JobOfferStatus,
+  JobTrade,
+  TimeSheetDay,
+  TimeSheetStatus,
+} from "@prisma/client";
+
+const locationZod = z.object({
+  type: z.string().default("Point"),
+  coordinates: z
+    .array(z.number())
+    .length(2, "Coordinates must contain longitude and latitude"),
+});
+
+const workingHourZod = z.object({
+  day: z.string().min(1, "Day is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  isPayOnePointFiveX: z.boolean().optional(),
+  isPayTwoX: z.boolean().optional(),
+});
+
+const workerRequirementZod = z.object({
+  trade: z.nativeEnum(JobTrade),
+  howMany: z.coerce.number().int().min(1, "At least one worker is required"),
+});
+
+export const createJobZod = z.object({
+  title: z.string().min(1, "Title is required").trim(),
+  hourlyRate: z.coerce.number().int().min(0, "Hourly rate cannot be negative"),
+  workersNeeded: z
+    .array(workerRequirementZod)
+    .nonempty("Workers needed are required"),
+  location: locationZod,
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  workingHours: z.array(workingHourZod).nonempty("Working hours are required"),
+  mustHave: z.array(z.nativeEnum(JobMustHave)),
+  note: z.string().min(1, "Note is required").trim(),
+});
+
+export type TCreateJob = z.infer<typeof createJobZod>;
+
+export const updateJobZod = createJobZod.partial();
+
+export type TUpdateJob = z.infer<typeof updateJobZod>;
+
+export const updateApplicationStatusZod = z.object({
+  status: z.enum([ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED]),
+});
+
+export const sendJobOfferZod = z.object({
+  jobId: z.string().min(1, "Job id is required"),
+  workerAuthId: z.string().min(1, "Worker id is required"),
+});
+
+export type TSendJobOffer = z.infer<typeof sendJobOfferZod>;
+
+export const updateJobOfferStatusZod = z.object({
+  status: z.enum([JobOfferStatus.ACCEPTED, JobOfferStatus.REJECTED]),
+});
+
+export const createTimeSheetZod = z.object({
+  week: z.coerce.number().int().min(1, "Week must be at least 1").optional(),
+  timeSheetDays: z
+    .array(
+      z.object({
+        day: z.nativeEnum(TimeSheetDay),
+        hours: z.coerce.number().int().min(0, "Hours cannot be negative"),
+      })
+    )
+    .nonempty("TimeSheet days are required"),
+});
+
+export type TCreateTimeSheet = z.infer<typeof createTimeSheetZod>;
+
+export const updateTimeSheetStatusZod = z.object({
+  status: z.enum([TimeSheetStatus.APPROVED, TimeSheetStatus.REJECTED]),
+});
+
+export const updateJobCompletionStatusZod = z.object({
+  status: z.enum([JobCompletionStatus.COMPLETED, JobCompletionStatus.REJECTED]),
+});
